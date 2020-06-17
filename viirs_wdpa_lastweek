@@ -134,7 +134,7 @@ const apiCanaryBlueprint = async function () {
   const responseWDPAWeekly = await verifyRequest(requestOptions);
   //Iterate through each of the rows of the data in the response
   responseWDPAWeekly.data.forEach(row => {
-    if (!row.sum_alert_count) {
+    if (row.sum_alert_count===null) {
       throw new Error('sum of all VIIRS alerts from WDPA weekly table not returned');
     }
     else if (row.sum_alert_count===0){
