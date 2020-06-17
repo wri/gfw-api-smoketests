@@ -102,8 +102,11 @@ const apiCanaryBlueprint = async function () {
   const responseAll = await verifyRequest(requestOptions);
   //Iterate through each of the rows of the data in the response
   responseAll.data.forEach(row => {
-    if (!row.sum_alert_count) {
+    if (row.sum_alert_count===null) {
       throw new Error('sum of all VIIRS alerts from \'VIIRS Fire Alerts all\' table not returned');
+    }
+    else if (row.sum_alert_count===0){
+        throw new Error('sum of all VIIRS alerts from \'VIIRS Fire Alerts all\' table is 0');
     }
     else if (row.sum_alert_count!=totalVIIRSAlerts){
         throw new Error('sum of all VIIRS alerts from \'VIIRS Fire Alerts all\' table from ' + totalVIIRSAlertsStartYear + ' to ' + totalVIIRSAlertsEndYear  + ' is ' + row.sum_alert_count + '. Expected value is ' + totalVIIRSAlerts);
