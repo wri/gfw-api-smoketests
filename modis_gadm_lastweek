@@ -138,7 +138,7 @@ const apiCanaryBlueprint = async function () {
   const responseAdm0 = await verifyRequest(requestOptions);
   //Iterate through each of the rows of the data in the response
   responseAdm0.data.forEach(row => {
-    if (!row.sum_alert_count) {
+    if (row.sum_alert_count===null) {
       throw new Error('sum of all MODIS alerts from adm0 weekly table not returned');
     }
     else if (row.sum_alert_count===0){
