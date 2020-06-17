@@ -133,7 +133,7 @@ const apiCanaryBlueprint = async function () {
   const responseGeostoreWeekly = await verifyRequest(requestOptions);
   //Iterate through each of the rows of the data in the response
   responseGeostoreWeekly.data.forEach(row => {
-    if (!row.sum_alert_count) {
+    if (row.sum_alert_count===null) {
       throw new Error('sum of all MODIS alerts from geostore weekly table not returned');
     }
     else if (row.sum_alert_count===0){
