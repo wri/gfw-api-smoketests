@@ -2,9 +2,9 @@
 Smoke tests for gfw api endpoints.
 All of these tests are run using AWS Canaries.
 
-To access status of the tests, login to AWS GFW Production Account and navigate to https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#synthetics:canary/list.
+To access status of the tests, login to AWS GFW Production Account and navigate to <https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#synthetics:canary/list>.
 
-## VIIRS and MODIS tests ensure that fires data is consistent across all datasets after daily runs. 
+## VIIRS and MODIS tests ensure that fires data is consistent across all datasets after daily runs 
 
 - Sum of all VIIRS alerts for all complete years (2012-2019) from 'VIIRS Fire Alerts all' and 'VIIRS Fire Alerts adm0 weekly' tables are equal to the official count stored in the properties table
 - Sum of all VIIRS alerts for the most recent week from 'VIIRS Fire Alerts all' is equal to the number from the 'VIIRS Fire Alerts adm0 weekly' table 
