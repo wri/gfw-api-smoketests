@@ -1,8 +1,8 @@
-const synthetics = require('Synthetics');
-const log = require('SyntheticsLogger');
-const AWS = require('aws-sdk');
-const https = require('https');
-const http = require('http');
+const synthetics = require("Synthetics");
+const log = require("SyntheticsLogger");
+const AWS = require("aws-sdk");
+const https = require("https");
+const http = require("http");
 
 const apiCanaryBlueprint = async function () {
 
@@ -20,8 +20,8 @@ const apiCanaryBlueprint = async function () {
       if (body) { req.write(JSON.stringify(body)); }
 
       // Handle response
-      req.on('response', (res) => {
-        log.info(`Status Code: ${res.statusCode}`)
+      req.on("response", (res) => {
+        log.info(`Status Code: ${res.statusCode}`);
 
         // Assert the status code returned
         if (res.statusCode !== 200) {
@@ -29,15 +29,15 @@ const apiCanaryBlueprint = async function () {
         }
 
         // Grab body chunks and piece returned body together
-        let body = '';
-        res.on('data', (chunk) => { body += chunk.toString(); });
+        let body = "";
+        res.on("data", (chunk) => { body += chunk.toString(); });
 
         // Resolve providing the returned body
-        res.on('end', () => resolve(JSON.parse(body)));
+        res.on("end", () => resolve(JSON.parse(body)));
       });
 
       // Reject on error
-      req.on('error', (error) => reject(error));
+      req.on("error", (error) => reject(error));
       req.end();
     });
   }
@@ -49,8 +49,8 @@ const apiCanaryBlueprint = async function () {
     path: "/v1/query/?sql=SELECT%20*%20from%20a4a60110-8465-4f1f-ace1-1be1f3f19446%20limit%201",
     port: 443,
     headers: {
-      'User-Agent': synthetics.getCanaryUserAgentString(),
-      'Content-Type': 'application/json',
+      "User-Agent": synthetics.getCanaryUserAgentString(),
+      "Content-Type": "application/json",
     },
   };
 
@@ -59,7 +59,7 @@ const apiCanaryBlueprint = async function () {
   await secretsManager.getSecretValue({ SecretId: "gfw-api/staging-token" }, function(err, data) {
     if (err) log.info(err, err.stack);
     log.info(data);
-    requestOptions.headers['Authorization'] = "Bearer " + JSON.parse(data["SecretString"])["token"];
+    requestOptions.headers["Authorization"] = "Bearer " + JSON.parse(data["SecretString"])["token"];
   }).promise();
 
   // Find and use secret for hostname
@@ -86,8 +86,8 @@ const apiCanaryBlueprint = async function () {
   
   // Retrieve parameters for this smoke test
   let totalVIIRSAlerts=0;
-  let totalVIIRSAlertsStartYear='';
-  let totalVIIRSAlertsEndYear='';
+  let totalVIIRSAlertsStartYear="";
+  let totalVIIRSAlertsEndYear="";
   await secretsManager.getSecretValue({ SecretId: "gfw-api/smoke-tests-params" }, function(err, data) {
       if (err) log.info(err, err.stack);
       log.info(data);
@@ -98,18 +98,18 @@ const apiCanaryBlueprint = async function () {
 
   // TEST #1
   // Find sum of all VIIRS alerts for all historical years from VIIRS Fire Alerts all table
-  requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" + datasets.VIIRS_Fire_Alerts_all + "%20where%20alert__date%20%3E%3D%20%27" + totalVIIRSAlertsStartYear + "-01-01%27%20and%20alert__date%20%3C%3D%27" + totalVIIRSAlertsEndYear + '-12-31%27';
+  requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" + datasets.VIIRS_Fire_Alerts_all + "%20where%20alert__date%20%3E%3D%20%27" + totalVIIRSAlertsStartYear + "-01-01%27%20and%20alert__date%20%3C%3D%27" + totalVIIRSAlertsEndYear + "-12-31%27";
   const responseAll = await verifyRequest(requestOptions);
   //Iterate through each of the rows of the data in the response
   responseAll.data.forEach(row => {
     if (row.sum_alert_count===null) {
-      throw new Error('sum of all VIIRS alerts from \'VIIRS Fire Alerts all\' table not returned');
+      throw new Error("sum of all VIIRS alerts from \"VIIRS Fire Alerts all\" table not returned");
     }
     else if (row.sum_alert_count!=totalVIIRSAlerts){
-        throw new Error('sum of all VIIRS alerts from \'VIIRS Fire Alerts all\' table from ' + totalVIIRSAlertsStartYear + ' to ' + totalVIIRSAlertsEndYear  + ' is ' + row.sum_alert_count + '. Expected value is ' + totalVIIRSAlerts);
+        throw new Error("sum of all VIIRS alerts from \"VIIRS Fire Alerts all\" table from " + totalVIIRSAlertsStartYear + " to " + totalVIIRSAlertsEndYear  + " is " + row.sum_alert_count + ". Expected value is " + totalVIIRSAlerts);
     }
     else {
-        log.info('Successfully returned sum of all VIIRS alerts from \'VIIRS Fire Alerts all\' table  from ' + totalVIIRSAlertsStartYear + ' to ' + totalVIIRSAlertsEndYear  + ' as '  + totalVIIRSAlerts);
+        log.info("Successfully returned sum of all VIIRS alerts from \"VIIRS Fire Alerts all\" table  from " + totalVIIRSAlertsStartYear + " to " + totalVIIRSAlertsEndYear  + " as "  + totalVIIRSAlerts);
     }
   });  
   
@@ -120,13 +120,13 @@ const apiCanaryBlueprint = async function () {
   //Iterate through each of the rows of the data in the response
   responseAdm0.data.forEach(row => {
     if (!row.sum_alert_count) {
-      throw new Error('sum of all VIIRS alerts from \'VIIRS GADM adm0\' table  table not returned');
+      throw new Error("sum of all VIIRS alerts from \"VIIRS GADM adm0\" table  table not returned");
     }
     else if (row.sum_alert_count!=totalVIIRSAlerts){
-        throw new Error('sum of all VIIRS alerts from \'VIIRS GADM adm0\' from ' + totalVIIRSAlertsStartYear + ' to ' + totalVIIRSAlertsEndYear  + ' is ' + row.sum_alert_count + '. Expected value is ' + totalVIIRSAlerts);
+        throw new Error("sum of all VIIRS alerts from \"VIIRS GADM adm0\" from " + totalVIIRSAlertsStartYear + " to " + totalVIIRSAlertsEndYear  + " is " + row.sum_alert_count + ". Expected value is " + totalVIIRSAlerts);
     }
     else {
-        log.info('Successfully returned sum of all VIIRS alerts from \'VIIRS GADM adm0\' from ' + totalVIIRSAlertsStartYear + ' to ' + totalVIIRSAlertsEndYear  + ' as '  + totalVIIRSAlerts);
+        log.info("Successfully returned sum of all VIIRS alerts from \"VIIRS GADM adm0\" from " + totalVIIRSAlertsStartYear + " to " + totalVIIRSAlertsEndYear  + " as "  + totalVIIRSAlerts);
     }
   });  
   
