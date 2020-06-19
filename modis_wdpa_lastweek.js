@@ -174,4 +174,3 @@ const lastMonday = new Date();
 exports.handler = async () => {
   return await apiCanaryBlueprint();
 };
-"
