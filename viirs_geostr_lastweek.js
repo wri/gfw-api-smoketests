@@ -1,8 +1,8 @@
-const synthetics = require('Synthetics');
-const log = require('SyntheticsLogger');
-const AWS = require('aws-sdk');
-const https = require('https');
-const http = require('http');
+const synthetics = require("Synthetics");
+const log = require("SyntheticsLogger");
+const AWS = require("aws-sdk");
+const https = require("https");
+const http = require("http");
 
 const apiCanaryBlueprint = async function () {
 
@@ -20,8 +20,8 @@ const apiCanaryBlueprint = async function () {
       if (body) { req.write(JSON.stringify(body)); }
 
       // Handle response
-      req.on('response', (res) => {
-        log.info(`Status Code: ${res.statusCode}`)
+      req.on("response", (res) => {
+        log.info(`Status Code: ${res.statusCode}`);
 
         // Assert the status code returned
         if (res.statusCode !== 200) {
@@ -29,15 +29,15 @@ const apiCanaryBlueprint = async function () {
         }
 
         // Grab body chunks and piece returned body together
-        let body = '';
-        res.on('data', (chunk) => { body += chunk.toString(); });
+        let body = "";
+        res.on("data", (chunk) => { body += chunk.toString(); });
 
         // Resolve providing the returned body
-        res.on('end', () => resolve(JSON.parse(body)));
+        res.on("end", () => resolve(JSON.parse(body)));
       });
 
       // Reject on error
-      req.on('error', (error) => reject(error));
+      req.on("error", (error) => reject(error));
       req.end();
     });
   }
@@ -77,7 +77,7 @@ const apiCanaryBlueprint = async function () {
      var d = date.getDate();
      var m = date.getMonth()+1;
      var y = date.getFullYear();
-     var dateString = y + '-' + (m <= 9 ? '0' + m : m) + '-' + (d <= 9 ? '0' + d : d);
+     var dateString = y + "-" + (m <= 9 ? "0" + m : m) + "-" + (d <= 9 ? "0" + d : d);
      return dateString;
  }
  
@@ -89,8 +89,8 @@ const apiCanaryBlueprint = async function () {
     path: "/v1/query/?sql=SELECT%20*%20from%20a4a60110-8465-4f1f-ace1-1be1f3f19446%20limit%201",
     port: 443,
     headers: {
-      'User-Agent': synthetics.getCanaryUserAgentString(),
-      'Content-Type': 'application/json',
+      "User-Agent": synthetics.getCanaryUserAgentString(),
+      "Content-Type": "application/json",
     },
   };
 
@@ -99,7 +99,7 @@ const apiCanaryBlueprint = async function () {
   await secretsManager.getSecretValue({ SecretId: "gfw-api/staging-token" }, function(err, data) {
     if (err) log.info(err, err.stack);
     log.info(data);
-    requestOptions.headers['Authorization'] = "Bearer " + JSON.parse(data["SecretString"])["token"];
+    requestOptions.headers["Authorization"] = "Bearer " + JSON.parse(data["SecretString"])["token"];
   }).promise();
 
   // Find and use secret for hostname
@@ -135,10 +135,10 @@ const apiCanaryBlueprint = async function () {
   //Iterate through each of the rows of the data in the response
   responseGeostoreWeekly.data.forEach(row => {
     if (row.sum_alert_count===null) {
-      throw new Error('sum of all VIIRS alerts from geostore weekly table not returned');
+      throw new Error("sum of all VIIRS alerts from geostore weekly table not returned");
     }
     else if (row.sum_alert_count===0){
-        throw new Error('sum of all VIIRS alerts from geostore weekly for the past week is 0');
+        throw new Error("sum of all VIIRS alerts from geostore weekly for the past week is 0");
     }
     else {
         sumVIIRSAlerts = row.sum_alert_count;
@@ -150,7 +150,7 @@ const apiCanaryBlueprint = async function () {
   // TEST #2
   // Find sum of all VIIRS alerts for the most recent week in the geostore daily table
   const lastMonday = new Date();
-  log.info("Today's date = " + getFormattedDate(currDate));
+  log.info("Today’s date = " + getFormattedDate(currDate));
   lastMonday.setDate(getMonday(currDate));
   log.info("Last Monday = " + getFormattedDate(lastMonday));
   log.info("Today = " + getFormattedDate(currDate));
@@ -159,10 +159,10 @@ const apiCanaryBlueprint = async function () {
   //Iterate through each of the rows of the data in the response
   responseGeostoreDaily.data.forEach(row => {
     if (!row.sum_alert_count) {
-      throw new Error('sum of all VIIRS alerts from geostore daily table not returned');
+      throw new Error("sum of all VIIRS alerts from geostore daily table not returned");
     }
     else if (row.sum_alert_count!=sumVIIRSAlerts){
-        throw new Error('sum of all VIIRS alerts from geostore daily for the past week is not equal to the sum of all VIIRS alerts from geostore weekly for the past week: ' + sumVIIRSAlerts);
+        throw new Error("sum of all VIIRS alerts from geostore daily for the past week is not equal to the sum of all VIIRS alerts from geostore weekly for the past week: " + sumVIIRSAlerts);
     }
     else {
         log.info("Successfully returned sum of all VIIRS alerts for the past week from geostore daily table: " + row.sum_alert_count);
