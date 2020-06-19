@@ -9,6 +9,7 @@ const apiCanaryBlueprint = async function () {
   const verifyRequest = async function (requestOption, body = null) {
     return new Promise((resolve, reject) => {
         
+      // Test integration with pyCharm
       // Set log level
       synthetics.setLogLevel(1);
         
