@@ -40,7 +40,7 @@ const apiCanaryBlueprint = async function () {
       req.on("error", (error) => reject(error));
       req.end();
     });
-  }
+  };
 
 
  // Returns the ISO week of the date.
@@ -54,7 +54,7 @@ const apiCanaryBlueprint = async function () {
      // Adjust to Thursday in week 1 and count number of weeks from date to week1.
      return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000
                         - 3 + (week1.getDay() + 6) % 7) / 7);
- }
+ };
 
  // Returns Date that corresponds to Monday of the week corresponding to the incoming date
  const getMonday = function(incomingDate) {
@@ -62,7 +62,7 @@ const apiCanaryBlueprint = async function () {
      date.setHours(0, 0, 0, 0);
      date.setDate(date.getDate() - (date.getDay() + 6) % 7);
      return date.getDate();
- }
+ };
 
  // Returns Date that corresponds to Sunday of the week corresponding to the incoming date
  const getSunday = function(incomingDate) {
@@ -70,7 +70,7 @@ const apiCanaryBlueprint = async function () {
      date.setHours(0, 0, 0, 0);
      date.setDate(date.getDate() + 6 - (date.getDay() + 6) % 7);
      return date.getDate();
- }
+ };
 
  const getFormattedDate = function(incomingDate) {
      var date = new Date(incomingDate);
@@ -79,9 +79,9 @@ const apiCanaryBlueprint = async function () {
      var y = date.getFullYear();
      var dateString = y + "-" + (m <= 9 ? "0" + m : m) + "-" + (d <= 9 ? "0" + d : d);
      return dateString;
- }
+ };
 
- const testIntegrityForLayer = function(datasets, countryISO, layer){
+ const testIntegrityForLayer = async function(datasets, countryISO, layer, operation){
     // TEST #1
     // Find sum of all VIIRS alerts for the most recent completed week in the adm0 table
     let sumVIIRSAlerts = 0;
@@ -89,18 +89,18 @@ const apiCanaryBlueprint = async function () {
     const currYear = currDate.getFullYear();
     const currWeek = getWeek(currDate);
     log.info("current week:" + currWeek);
-    requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" + 
-        datasets.ViirsGadmAdm0Weekly + "%20where%20alert__year%20%3D%20" + currYear + "%20and%20alert__week%3D" + 
-        currWeek + "%20and%20iso%3D%20%27" + countryISO + "%27%20and%20" + layer + "%20%3D%20%27true%27";
+    requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" +
+        datasets.ViirsGadmAdm0Weekly + "%20where%20alert__year%20%3D%20" + currYear + "%20and%20alert__week%3D" +
+        currWeek + "%20and%20iso%3D%20%27" + countryISO + "%27%20and%20" + layer + operation;
     const responseAdm0 = await verifyRequest(requestOptions);
     //Iterate through each of the rows of the data in the response
     responseAdm0.data.forEach(row => {
         if (row.sum_alert_count===null) {
             throw new Error("sum of all VIIRS alerts from adm0 weekly table not returned");
         }
-        else if (row.sum_alert_count===0){
+       /* else if (row.sum_alert_count===0){
             throw new Error("sum of all VIIRS alerts from adm0 weekly for the past  week is 0");
-        }
+        }*/
         else {
             sumVIIRSAlerts = row.sum_alert_count;
             log.info("Successfully returned sum of all VIIRS alerts for the past week for rom adm0 weekly table: " + sumVIIRSAlerts);
@@ -110,13 +110,13 @@ const apiCanaryBlueprint = async function () {
 
     // TEST #2
     // Find sum of all VIIRS alerts for the most recent  week in the adm1 table
-    requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" + 
-        datasets.ViirsGadmAdm1Weekly + "%20where%20alert__year%20%3D%20" + currYear + "%20and%20and%20alert__week%3D" + 
-        currWeek + "%20and%20iso%3D%20%27" + countryISO + "%27%20and%20" + layer + "%20%3D%20%27true%27";
+    requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" +
+        datasets.ViirsGadmAdm1Weekly + "%20where%20alert__year%20%3D%20" + currYear + "%20and%20and%20alert__week%3D" +
+        currWeek + "%20and%20iso%3D%20%27" + countryISO + "%27%20and%20" + layer + operation;
     const responseAdm1 = await verifyRequest(requestOptions);
     //Iterate through each of the rows of the data in the response
     responseAdm1.data.forEach(row => {
-        if (!row.sum_alert_count) {
+        if (row.sum_alert_count===null) {
             throw new Error("sum of all VIIRS alerts from adm1 weekly table not returned");
         }
         else if (row.sum_alert_count!=sumVIIRSAlerts){
@@ -129,13 +129,13 @@ const apiCanaryBlueprint = async function () {
 
     // TEST #3
     // Find sum of all VIIRS alerts for the most recent week in the adm2 table
-    requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" + 
-        datasets.ViirsGadmAdm2Weekly + "%20where%20alert__year%20%3D%20" + currYear + "%20and%20and%20alert__week%3D" + 
-        currWeek + "%20and%20iso%3D%20%27" + countryISO + "%27%20and%20" + layer + "%20%3D%20%27true%27";
+    requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" +
+        datasets.ViirsGadmAdm2Weekly + "%20where%20alert__year%20%3D%20" + currYear + "%20and%20and%20alert__week%3D" +
+        currWeek + "%20and%20iso%3D%20%27" + countryISO + "%27%20and%20" + layer + operation;
     const responseAdm2 = await verifyRequest(requestOptions);
     //Iterate through each of the rows of the data in the response
     responseAdm2.data.forEach(row => {
-        if (!row.sum_alert_count) {
+        if (row.sum_alert_count===null) {
             throw new Error("sum of all VIIRS alerts from adm2 weekly table not returned");
         }
         else if (row.sum_alert_count!=sumVIIRSAlerts){
@@ -153,14 +153,14 @@ const apiCanaryBlueprint = async function () {
     lastMonday.setDate(getMonday(currDate));
     log.info("Last Monday = " + getFormattedDate(lastMonday));
     log.info("Today = " + getFormattedDate(currDate));
-    requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" + 
-        datasets.ViirsGadmAdm2Daily + "%20where%20and%20alert__date%20%3E%3D%27" + 
-        getFormattedDate(lastMonday) + "%27%20and%20alert__date%3C%27" + getFormattedDate(currDate) + "%27" + 
-        "%20and%20iso%3D%20%27" + countryISO + "%27%20and%20" + layer + "%20%3D%20%27true%27";
+    requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" +
+        datasets.ViirsGadmAdm2Daily + "%20where%20and%20alert__date%20%3E%3D%27" +
+        getFormattedDate(lastMonday) + "%27%20and%20alert__date%3C%27" + getFormattedDate(currDate) + "%27" +
+        "%20and%20iso%3D%20%27" + countryISO + "%27%20and%20" + layer + operation;
     const responseAdm2Daily = await verifyRequest(requestOptions);
     //Iterate through each of the rows of the data in the response
     responseAdm2Daily.data.forEach(row => {
-        if (!row.sum_alert_count) {
+        if (row.sum_alert_count===null) {
             throw new Error("sum of all VIIRS alerts from adm2 daily table not returned");
         }
         else if (row.sum_alert_count!=sumVIIRSAlerts){
@@ -170,7 +170,9 @@ const apiCanaryBlueprint = async function () {
             log.info("Successfully returned sum of all VIIRS alerts for the past week from adm2 daily table: " + row.sum_alert_count);
         }
     });
- }
+    return sumVIIRSAlerts;
+ };
+
 
   // Build request options
   let requestOptions = {
@@ -199,8 +201,6 @@ const apiCanaryBlueprint = async function () {
     requestOptions.hostname = JSON.parse(data["SecretString"])["smoke-tests-host-staging"];
   }).promise();
 
-
-
   // Find and use datasetid
   let datasets = {
     ViirsGadmAdm0Whitelist: "",
@@ -221,43 +221,55 @@ const apiCanaryBlueprint = async function () {
 
   // find and use query parameters
   let countriesISOCodes = "";
+  let contextualLayers = new Map ();
+  let contextualLayersString = "";
   await secretsManager.getSecretValue({ SecretId: "gfw-api/smoke-tests-params" }, function(err, data) {
       if (err) log.info(err, err.stack);
       log.info(data);
       countriesISOCodes = JSON.parse(data["SecretString"])["whitelist_test_countries_ISO_codes"];
+      contextualLayersString = JSON.parse(data["SecretString"])["whitelist_test_contextual_layers"];
+      log.info("contextualLayersString: " + contextualLayersString);
+      contextualLayers = new Map(JSON.parse(contextualLayersString));
+      log.info(contextualLayers);
   }).promise();
 
-  requestOptions.path = "/v1/query/?sql=select%20*%20from%20" +
-    datasets.ViirsGadmAdm0Whitelist + "%20where%20iso%20in%20%28" + countriesISOCodes + "%29";
-  const responseAdm0 = await verifyRequest(requestOptions);
+  requestOptions.path = "/v1/query/?sql=select%20*%20from%20" + datasets.ViirsGadmAdm0Whitelist + "%20where%20iso%20in%20%28" + countriesISOCodes + "%29";
+  const response = await verifyRequest(requestOptions);
+  let totalViirsAlertsMap = new Map();
+  let totalViirsAlerts = 0;
   //Iterate through each of the rows of the data in the response
-  responseAdm0.data.forEach(row => {
+  for (const row of response.data) {
     if (row.iso===null) {
         throw new Error("no entry returned from Viirs Adm0 Whitelist table");
     }
     else {
-        if (row.wdpa_protected_area__iucn_cat==="true") testIntegrityForLayer(datasets, row.iso, "wdpa_protected_area__iucn_cat");
-        if (row.is__umd_regional_primary_forest_2001)==="true")testIntegrityForLayer(datasets, row.iso, "is__umd_regional_primary_forest_2001");
-        if (row.is__birdlife_alliance_for_zero_extinction_site==="true") testIntegrityForLayer(datasets, row.iso, "is__birdlife_alliance_for_zero_extinction_site");
-        if (row.is__birdlife_key_biodiversity_area==="true")testIntegrityForLayer(datasets, row.iso, "is__birdlife_key_biodiversity_area");
-        if (row.is__landmark_land_right==="true")testIntegrityForLayer(datasets, row.iso, "is__landmark_land_right");
-        if (row.gfw_plantation__type==="true") testIntegrityForLayer(datasets, row.iso, "gfw_plantation__type");
-        if (row.is__gfw_mining==="true") testIntegrityForLayer(datasets, row.iso, "is__gfw_mining");
-        if (row.is__gfw_managed_forest==="true") testIntegrityForLayer(datasets, row.iso, "is__gfw_managed_forest");
-        if (row.rspo_oil_palm__certification_status) testIntegrityForLayer(datasets, row.iso, "rspo_oil_palm__certification_status");
-        if (row.is__gfw_wood_fiber==="true") testIntegrityForLayer(datasets, row.iso, "is__gfw_wood_fiber");
-        if (row.is__peatland)==="true") testIntegrityForLayer(datasets, row.iso, "is__peatland");
-        if (row.is__idn_forest_moratorium==="true")testIntegrityForLayer(datasets, row.iso, "is__idn_forest_moratorium");
-        if (row.is__gfw_oil_palm==="true") testIntegrityForLayer(datasets, row.iso, "is__gfw_oil_palm");
-        if (row.idn_forest_area__type) testIntegrityForLayer(datasets, row.iso, "idn_forest_area__type");
-        if (row.per_forest_concession__type==="true") testIntegrityForLayer(datasets, row.iso, "per_forest_concession__type");
-        if (row.is__gfw_oil_gas==="true") testIntegrityForLayer(datasets, row.iso, "is__gfw_oil_gas");
-        if (row.is__gmw_mangroves_2016==="true") testIntegrityForLayer(datasets, row.iso, "is__gmw_mangroves_2016");
-        if (row.is__ifl_intact_forest_landscape_2016) testIntegrityForLayer(datasets, row.iso, "is__ifl_intact_forest_landscape_2016");
-        if (row.bra_biome__name==="true") testIntegrityForLayer(datasets, row.iso, "bra_biome__name");
+        for (const [key, value] of contextualLayers){
+            if (row[key]===true){
+                totalViirsAlerts = await testIntegrityForLayer(datasets, row.iso, key, value);
+                totalViirsAlertsMap.set(row.iso + "_" + key, totalViirsAlerts);
+                log.info("key=" + key + " value=" + value + " row[key]=" + row[key] + " totalViirsAlerts=" + totalViirsAlerts);
+            }
+        }
     }
-  });
+  };
+
+  let throwException = false;
+  let throwExceptionKeys = "";
+  log.info("---------------------------Results:-------------------------------- ")
+  for (const [key, value] of totalViirsAlertsMap){
+      log.info("key=" + key + " value=" + value );
+      if (value === 0){
+          throwExceptionKey = throwExceptionKey + " " + key;
+          throwException = true;
+      }
+  }
+  log.info("----------------------------------------------------------- ")
+  if(throwException){
+      throw new Error("0 number of alerts returned for the past week for the following countries/contextual layers" + throwExceptionKey);
+  }
+
 };
+
 
 exports.handler = async () => {
   return await apiCanaryBlueprint();
