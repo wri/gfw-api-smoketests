@@ -82,95 +82,53 @@ const apiCanaryBlueprint = async function () {
  };
 
  const testIntegrityForLayer = async function(datasets, countryISO, layer, operation){
-    // TEST #1
-    // Find sum of all VIIRS alerts for the most recent completed week in the adm0 table
-    let sumVIIRSAlerts = 0;
-    const currDate = new Date();
-    const currYear = currDate.getFullYear();
-    const currWeek = getWeek(currDate);
-    log.info("current week:" + currWeek);
-    requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" +
-        datasets.ViirsGadmAdm0Weekly + "%20where%20alert__year%20%3D%20" + currYear + "%20and%20alert__week%3D" +
-        currWeek + "%20and%20iso%3D%20%27" + countryISO + "%27%20and%20" + layer + operation;
-    const responseAdm0 = await verifyRequest(requestOptions);
-    //Iterate through each of the rows of the data in the response
-    responseAdm0.data.forEach(row => {
-        if (row.sum_alert_count===null) {
-            throw new Error("sum of all VIIRS alerts from adm0 weekly table not returned");
-        }
-       /* else if (row.sum_alert_count===0){
-            throw new Error("sum of all VIIRS alerts from adm0 weekly for the past  week is 0");
-        }*/
-        else {
-            sumVIIRSAlerts = row.sum_alert_count;
-            log.info("Successfully returned sum of all VIIRS alerts for the past week for rom adm0 weekly table: " + sumVIIRSAlerts);
-        }
-    });
+  // TEST #1
+  // Find sum of all VIIRS alerts for the most recent completed week in the WDPA weekly table
+  let sumVIIRSAlerts = 0;
+  const currDate = new Date();
+  const currYear = currDate.getFullYear();
+  const currWeek = getWeek(currDate);
+  requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" +
+    datasets.ViirsWdpaWeekly + "%20where%20alert__year%20%3D%20" + currYear + "%20and%20and%20alert__week%3D" + currWeek +
+    "%20and%20wdpa_protected_area__iso%3D%20%27" + countryISO + "%27%20and%20" + layer + operation;
+  const responseWDPAWeekly = await verifyRequest(requestOptions);
+  //Iterate through each of the rows of the data in the response
+  responseWDPAWeekly.data.forEach(row => {
+    if (row.sum_alert_count===null) {
+      throw new Error("sum of all VIIRS alerts from WDPA weekly table not returned");
+    }
+    else {
+        sumVIIRSAlerts = row.sum_alert_count;
+        log.info("Successfully returned sum of all VIIRS alerts for the past week from WDPA weekly table: " + sumVIIRSAlerts);
+    }
+  });
 
 
-    // TEST #2
-    // Find sum of all VIIRS alerts for the most recent  week in the adm1 table
-    requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" +
-        datasets.ViirsGadmAdm1Weekly + "%20where%20alert__year%20%3D%20" + currYear + "%20and%20and%20alert__week%3D" +
-        currWeek + "%20and%20iso%3D%20%27" + countryISO + "%27%20and%20" + layer + operation;
-    const responseAdm1 = await verifyRequest(requestOptions);
-    //Iterate through each of the rows of the data in the response
-    responseAdm1.data.forEach(row => {
-        if (row.sum_alert_count===null) {
-            throw new Error("sum of all VIIRS alerts from adm1 weekly table not returned");
-        }
-        else if (row.sum_alert_count!=sumVIIRSAlerts){
-            throw new Error("sum of all VIIRS alerts from adm1 weekly for the past week " + row.sum_alert_count + " is not equal to the sum of all VIIRS alerts from adm0 weekly for the past week: " + sumVIIRSAlerts);
-        }
-        else {
-            log.info("Successfully returned sum of all VIIRS alerts for the past week from adm1 weekly table: " + row.sum_alert_count);
-        }
-    });
-
-    // TEST #3
-    // Find sum of all VIIRS alerts for the most recent week in the adm2 table
-    requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" +
-        datasets.ViirsGadmAdm2Weekly + "%20where%20alert__year%20%3D%20" + currYear + "%20and%20and%20alert__week%3D" +
-        currWeek + "%20and%20iso%3D%20%27" + countryISO + "%27%20and%20" + layer + operation;
-    const responseAdm2 = await verifyRequest(requestOptions);
-    //Iterate through each of the rows of the data in the response
-    responseAdm2.data.forEach(row => {
-        if (row.sum_alert_count===null) {
-            throw new Error("sum of all VIIRS alerts from adm2 weekly table not returned");
-        }
-        else if (row.sum_alert_count!=sumVIIRSAlerts){
-            throw new Error("sum of all VIIRS alerts from adm2 weekly for the past week " + row.sum_alert_count + " is not equal to the sum of all VIIRS alerts from adm0 weekly for the past week: " + sumVIIRSAlerts);
-        }
-        else {
-            log.info("Successfully returned sum of all VIIRS alerts for the past week from adm2 weekly table: " + row.sum_alert_count);
-        }
-    });
-
-    // TEST #4
-    // Find sum of all VIIRS alerts for the most recent week in the adm2 daily table
-    const lastMonday = new Date();
-    log.info("Today’s date = " + getFormattedDate(currDate));
-    lastMonday.setDate(getMonday(currDate));
-    log.info("Last Monday = " + getFormattedDate(lastMonday));
-    log.info("Today = " + getFormattedDate(currDate));
-    requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" +
-        datasets.ViirsGadmAdm2Daily + "%20where%20and%20alert__date%20%3E%3D%27" +
-        getFormattedDate(lastMonday) + "%27%20and%20alert__date%3C%27" + getFormattedDate(currDate) + "%27" +
-        "%20and%20iso%3D%20%27" + countryISO + "%27%20and%20" + layer + operation;
-    const responseAdm2Daily = await verifyRequest(requestOptions);
-    //Iterate through each of the rows of the data in the response
-    responseAdm2Daily.data.forEach(row => {
-        if (row.sum_alert_count===null) {
-            throw new Error("sum of all VIIRS alerts from adm2 daily table not returned");
-        }
-        else if (row.sum_alert_count!=sumVIIRSAlerts){
-            throw new Error("sum of all VIIRS alerts from adm2 daily for the past week " + row.sum_alert_count + " is not equal to the sum of all VIIRS alerts from adm0 weekly for the past week: " + sumVIIRSAlerts);
-        }
-        else {
-            log.info("Successfully returned sum of all VIIRS alerts for the past week from adm2 daily table: " + row.sum_alert_count);
-        }
-    });
-    return sumVIIRSAlerts;
+  // TEST #2
+  // Find sum of all VIIRS alerts for Brazil for the most recent completed week in the WDPA daily table
+  const lastMonday = new Date();
+  log.info("Today’s date = " + getFormattedDate(currDate));
+  lastMonday.setDate(getMonday(currDate));
+  log.info("Last Monday = " + getFormattedDate(lastMonday));
+  log.info("Today = " + getFormattedDate(currDate));
+  requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" +
+    datasets.ViirsWdpaDaily + "%20where%20alert__date%3E%3D%27" +
+    getFormattedDate(lastMonday) + "%27%20and%20alert__date%3C%27" + getFormattedDate(currDate) + "%27" +
+    "%20and%20wdpa_protected_area__iso%3D%20%27" + countryISO + "%27%20and%20" + layer + operation;
+  const responseWDPADaily = await verifyRequest(requestOptions);
+  //Iterate through each of the rows of the data in the response
+  responseWDPADaily.data.forEach(row => {
+    if (row.sum_alert_count===null) {
+      throw new Error("sum of all VIIRS alerts from WDPA daily table not returned");
+    }
+    else if (row.sum_alert_count!=sumVIIRSAlerts){
+        throw new Error("sum of all VIIRS alerts from WDPA daily for the past week is not equal to the sum of all VIIRS alerts from WDPA weekly for the past week: " + sumVIIRSAlerts);
+    }
+    else {
+        log.info("Successfully returned sum of all VIIRS alerts for the past week from WDPA daily table: " + row.sum_alert_count);
+    }
+  });
+  return sumVIIRSAlerts;
  };
 
 
@@ -203,20 +161,16 @@ const apiCanaryBlueprint = async function () {
 
   // Find and use datasetid
   let datasets = {
-    ViirsGadmAdm0Whitelist: "",
-    ViirsGadmAdm0Weekly: "",
-    ViirsGadmAdm1Weekly: "",
-    ViirsGadmAdm2Weekly: "",
-    ViirsGadmAdm2Daily: "",
+    ViirsWdpaWhitelist: "",
+    ViirsWdpaWeekly: "",
+    ViirsWdpaDaily: "",
   };
   await secretsManager.getSecretValue({ SecretId: "gfw-api/datasets" }, function(err, data) {
       if (err) log.info(err, err.stack);
       log.info(data);
-      datasets.ViirsGadmAdm0Whitelist = JSON.parse(data["SecretString"])["VIIRS_GADM_adm0_whitelist"];
-      datasets.ViirsGadmAdm0Weekly = JSON.parse(data["SecretString"])["VIIRS_GADM_adm0_weekly"];
-      datasets.ViirsGadmAdm1Weekly = JSON.parse(data["SecretString"])["VIIRS_GADM_adm1_weekly"];
-      datasets.ViirsGadmAdm2Weekly = JSON.parse(data["SecretString"])["VIIRS_GADM_adm2_weekly"];
-      datasets.ViirsGadmAdm2Daily = JSON.parse(data["SecretString"])["VIIRS_GADM_adm2_daily"];
+      datasets.ViirsWdpaWhitelist = JSON.parse(data["SecretString"])["VIIRS_WDPA_whitelist"];
+      datasets.ViirsWdpaWeekly = JSON.parse(data["SecretString"])["VIIRS_WDPA_weekly"];
+      datasets.ViirsWdpaDaily = JSON.parse(data["SecretString"])["VIIRS_WDPA_daily"];
   }).promise();
 
   // find and use query parameters
@@ -232,18 +186,18 @@ const apiCanaryBlueprint = async function () {
       contextualLayers = new Map(JSON.parse(contextualLayersString));
   }).promise();
 
-  requestOptions.path = "/v1/query/?sql=select%20*%20from%20" + datasets.ViirsGadmAdm0Whitelist + "%20where%20iso%20in%20%28" + countriesISOCodes + "%29";
+  requestOptions.path = "/v1/query/?sql=select%20*%20from%20" + datasets.ViirsWdpaWhitelist + "%20where%20iso%20in%20%28" + countriesISOCodes + "%29";
   const response = await verifyRequest(requestOptions);
   let totalViirsAlertsMap = new Map();
   let totalViirsAlerts = 0;
   //Iterate through each of the rows of the data in the response
   for (const row of response.data) {
     if (row.iso===null) {
-        throw new Error("no entry returned from Viirs Adm0 Whitelist table");
+        throw new Error("no entry returned from Viirs WDPA Whitelist table");
     }
     else {
         for (const [key, value] of contextualLayers){
-            if (row[key]===true){
+            if (key!="wdpa_protected_area__iucn_cat" and !totalViirsAlertsMap.get(row.iso + "_" + key) and row[key]===true){
                 totalViirsAlerts = await testIntegrityForLayer(datasets, row.iso, key, value);
                 totalViirsAlertsMap.set(row.iso + "_" + key, totalViirsAlerts);
                 log.info("key=" + key + " value=" + value + " row[key]=" + row[key] + " totalViirsAlerts=" + totalViirsAlerts);
@@ -258,14 +212,14 @@ const apiCanaryBlueprint = async function () {
   for (const [key, value] of totalViirsAlertsMap){
       log.info("key=" + key + " value=" + value );
       if (value === 0){
-          throwExceptionKeys = throwExceptionKeys + " " + key;
+          throwExceptionKey = throwExceptionKey + " " + key;
           throwException = true;
       }
   }
   log.info("----------------------------------------------------------- ")
-  if(throwException){
+ /* if(throwException){
       throw new Error("0 number of alerts returned for the past week for the following countries/contextual layers" + throwExceptionKey);
-  }
+  }*/
 
 };
 
