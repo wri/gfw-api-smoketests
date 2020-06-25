@@ -264,7 +264,7 @@ const apiCanaryBlueprint = async function () {
   }
   log.info("----------------------------------------------------------- ")
   if(throwException){
-      throw new Error("0 number of alerts returned for the past week for the following countries/contextual layers" + throwExceptionKey);
+      throw new Error("0 number of alerts returned for the past week for the following countries/contextual layers" + throwExceptionKeys);
   }
 
 };
