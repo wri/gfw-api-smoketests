@@ -81,51 +81,51 @@ const apiCanaryBlueprint = async function () {
      return dateString;
  };
 
- const testIntegrityForLayer = async function(datasets, countryISOCodes, layer, operation){
+ const testIntegrityForLayer = async function(datasets, layer, operation){
   // TEST #1
-  // Find sum of all VIIRS alerts for the most recent completed week in the WDPA weekly table
+  // Find sum of all VIIRS alerts for the most recent completed week in the geostore weekly table
   let sumVIIRSAlerts = 0;
   const currDate = new Date();
   const currYear = currDate.getFullYear();
   const currWeek = getWeek(currDate);
   requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" +
-    datasets.ViirsWdpaWeekly + "%20where%20alert__year%20%3D%20" + currYear + "%20and%20and%20alert__week%3D" + currWeek +
-    "%20and%20wdpa_protected_area__iso%20in%20%28" + countriesISOCodes + "%29%20and%20" + layer + operation;
+    datasets.ViirsGeostoreWeekly + "%20where%20alert__year%20%3D%20" + currYear + "%20and%20and%20alert__week%3D" + currWeek +
+    "%20and%20" + layer + operation;
   const responseWDPAWeekly = await verifyRequest(requestOptions);
   //Iterate through each of the rows of the data in the response
   responseWDPAWeekly.data.forEach(row => {
     if (row.sum_alert_count===null) {
-      throw new Error("sum of all VIIRS alerts from WDPA weekly table not returned");
+      throw new Error("sum of all VIIRS alerts from geostore weekly table not returned");
     }
     else {
         sumVIIRSAlerts = row.sum_alert_count;
-        log.info("Successfully returned sum of all VIIRS alerts for the past week from WDPA weekly table: " + sumVIIRSAlerts);
+        log.info("Successfully returned sum of all VIIRS alerts for the past week from geostore weekly table: " + sumVIIRSAlerts);
     }
   });
 
 
   // TEST #2
-  // Find sum of all VIIRS alerts for Brazil for the most recent completed week in the WDPA daily table
+  // Find sum of all VIIRS alerts for Brazil for the most recent completed week in the geostore daily table
   const lastMonday = new Date();
   log.info("Today’s date = " + getFormattedDate(currDate));
   lastMonday.setDate(getMonday(currDate));
   log.info("Last Monday = " + getFormattedDate(lastMonday));
   log.info("Today = " + getFormattedDate(currDate));
   requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" +
-    datasets.ViirsWdpaDaily + "%20where%20alert__date%3E%3D%27" +
+    datasets.ViirsGeostoreDaily + "%20where%20alert__date%3E%3D%27" +
     getFormattedDate(lastMonday) + "%27%20and%20alert__date%3C%27" + getFormattedDate(currDate) + "%27" +
-    "%20and%20wdpa_protected_area__iso%20in%20%28" + countriesISOCodes + "%29%20and%20" + layer + operation;
+    "%20and%20" + layer + operation;
   const responseWDPADaily = await verifyRequest(requestOptions);
   //Iterate through each of the rows of the data in the response
   responseWDPADaily.data.forEach(row => {
     if (row.sum_alert_count===null) {
-      throw new Error("sum of all VIIRS alerts from WDPA daily table not returned");
+      throw new Error("sum of all VIIRS alerts from geostore daily table not returned");
     }
     else if (row.sum_alert_count!=sumVIIRSAlerts){
-        throw new Error("sum of all VIIRS alerts from WDPA daily for the past week is not equal to the sum of all VIIRS alerts from WDPA weekly for the past week: " + sumVIIRSAlerts);
+        throw new Error("sum of all VIIRS alerts from geostore daily for the past week is not equal to the sum of all VIIRS alerts from WDPA weekly for the past week: " + sumVIIRSAlerts);
     }
     else {
-        log.info("Successfully returned sum of all VIIRS alerts for the past week from WDPA daily table: " + row.sum_alert_count);
+        log.info("Successfully returned sum of all VIIRS alerts for the past week from geostore daily table: " + row.sum_alert_count);
     }
   });
   return sumVIIRSAlerts;
@@ -168,37 +168,35 @@ const apiCanaryBlueprint = async function () {
   await secretsManager.getSecretValue({ SecretId: "gfw-api/datasets" }, function(err, data) {
       if (err) log.info(err, err.stack);
       log.info(data);
-      datasets.ViirsWdpaWhitelist = JSON.parse(data["SecretString"])["VIIRS_WDPA_whitelist"];
-      datasets.ViirsWdpaWeekly = JSON.parse(data["SecretString"])["VIIRS_WDPA_weekly"];
-      datasets.ViirsWdpaDaily = JSON.parse(data["SecretString"])["VIIRS_WDPA_daily"];
+      datasets.ViirsGeostoreWhitelist = JSON.parse(data["SecretString"])["VIIRS_geostore_whitelist"];
+      datasets.ViirsGeostoreWeekly = JSON.parse(data["SecretString"])["VIIRS_geostore_weekly"];
+      datasets.ViirsGeostoreDaily = JSON.parse(data["SecretString"])["VIIRS_geostore_daily"];
   }).promise();
 
   // find and use query parameters
-  let countriesISOCodes = "";
   let contextualLayers = new Map ();
   let contextualLayersString = "";
   await secretsManager.getSecretValue({ SecretId: "gfw-api/smoke-tests-params" }, function(err, data) {
       if (err) log.info(err, err.stack);
       log.info(data);
-      countriesISOCodes = JSON.parse(data["SecretString"])["whitelist_test_countries_ISO_codes"];
-      contextualLayersString = JSON.parse(data["SecretString"])["whitelist_wdpa_contextual_layers"];
+      contextualLayersString = JSON.parse(data["SecretString"])["whitelist_geostore_contextual_layers"];
       log.info("contextualLayersString: " + contextualLayersString);
       contextualLayers = new Map(JSON.parse(contextualLayersString));
   }).promise();
 
-  requestOptions.path = "/v1/query/?sql=select%20*%20from%20" + datasets.ViirsWdpaWhitelist + "%20where%20wdpa_protected_area__iso%20in%20%28" + countriesISOCodes + "%29";
+  requestOptions.path = "/v1/query/?sql=select%20*%20from%20" + datasets.ViirsGeostoreWhitelist;
   const response = await verifyRequest(requestOptions);
   let totalViirsAlertsMap = new Map();
   let totalViirsAlerts = 0;
   //Iterate through each of the rows of the data in the response
   for (const row of response.data) {
     if (row.wdpa_protected_area__iso===null) {
-        throw new Error("no entry returned from Viirs WDPA Whitelist table");
+        throw new Error("no entry returned from Viirs geostore Whitelist table");
     }
     else {
         for (const [key, value] of contextualLayers){
             if (totalViirsAlertsMap.get(key)===undefined && row[key]===true){
-                totalViirsAlerts = await testIntegrityForLayer(datasets, countriesISOCodes, key, value);
+                totalViirsAlerts = await testIntegrityForLayer(datasets, key, value);
                 totalViirsAlertsMap.set(key, totalViirsAlerts);
                 log.info("key=" + key + " value=" + value + " row[key]=" + row[key] + " totalViirsAlerts=" + totalViirsAlerts);
             }
