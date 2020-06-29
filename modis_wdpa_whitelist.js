@@ -61,15 +61,7 @@ const apiCanaryBlueprint = async function () {
      var date = new Date(incomingDate);
      date.setHours(0, 0, 0, 0);
      date.setDate(date.getDate() - (date.getDay() + 6) % 7);
-     return date.getDate();
- };
-
- // Returns Date that corresponds to Sunday of the week corresponding to the incoming date
- const getSunday = function(incomingDate) {
-     var date = new Date(incomingDate);
-     date.setHours(0, 0, 0, 0);
-     date.setDate(date.getDate() + 6 - (date.getDay() + 6) % 7);
-     return date.getDate();
+     return date;
  };
 
  const getFormattedDate = function(incomingDate) {
@@ -106,9 +98,8 @@ const apiCanaryBlueprint = async function () {
 
   // TEST #2
   // Find sum of all Modis alerts for Brazil for the most recent completed week in the WDPA daily table
-  const lastMonday = new Date();
   log.info("Today’s date = " + getFormattedDate(currDate));
-  lastMonday.setDate(getMonday(currDate));
+  const lastMonday = new Date(getMonday(currDate));
   log.info("Last Monday = " + getFormattedDate(lastMonday));
   log.info("Today = " + getFormattedDate(currDate));
   requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" +
@@ -217,9 +208,9 @@ const apiCanaryBlueprint = async function () {
       }
   }
   log.info("----------------------------------------------------------- ")
- /* if(throwException){
+ if(throwException){
       throw new Error("0 number of alerts returned for the past week across the following countries " + countriesISOCodes + " for the following contextuallayers " + throwExceptionKeys);
-  }*/
+  }
 
 };
 

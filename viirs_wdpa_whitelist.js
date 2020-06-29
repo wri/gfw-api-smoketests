@@ -61,15 +61,7 @@ const apiCanaryBlueprint = async function () {
      var date = new Date(incomingDate);
      date.setHours(0, 0, 0, 0);
      date.setDate(date.getDate() - (date.getDay() + 6) % 7);
-     return date.getDate();
- };
-
- // Returns Date that corresponds to Sunday of the week corresponding to the incoming date
- const getSunday = function(incomingDate) {
-     var date = new Date(incomingDate);
-     date.setHours(0, 0, 0, 0);
-     date.setDate(date.getDate() + 6 - (date.getDay() + 6) % 7);
-     return date.getDate();
+     return date;
  };
 
  const getFormattedDate = function(incomingDate) {
@@ -81,7 +73,7 @@ const apiCanaryBlueprint = async function () {
      return dateString;
  };
 
- const testIntegrityForLayer = async function(datasets, countryISO, layer, operation){
+const testIntegrityForLayer = async function(datasets, countryISOCodes, layer, operation){
   // TEST #1
   // Find sum of all VIIRS alerts for the most recent completed week in the WDPA weekly table
   let sumVIIRSAlerts = 0;
@@ -90,7 +82,7 @@ const apiCanaryBlueprint = async function () {
   const currWeek = getWeek(currDate);
   requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" +
     datasets.ViirsWdpaWeekly + "%20where%20alert__year%20%3D%20" + currYear + "%20and%20and%20alert__week%3D" + currWeek +
-    "%20and%20wdpa_protected_area__iso%3D%20%27" + countryISO + "%27%20and%20" + layer + operation;
+    "%20and%20wdpa_protected_area__iso%20in%20%28" + countriesISOCodes + "%29%20and%20" + layer + operation;
   const responseWDPAWeekly = await verifyRequest(requestOptions);
   //Iterate through each of the rows of the data in the response
   responseWDPAWeekly.data.forEach(row => {
@@ -106,15 +98,14 @@ const apiCanaryBlueprint = async function () {
 
   // TEST #2
   // Find sum of all VIIRS alerts for Brazil for the most recent completed week in the WDPA daily table
-  const lastMonday = new Date();
   log.info("Today’s date = " + getFormattedDate(currDate));
-  lastMonday.setDate(getMonday(currDate));
+  const lastMonday = new Date(getMonday(currDate));
   log.info("Last Monday = " + getFormattedDate(lastMonday));
   log.info("Today = " + getFormattedDate(currDate));
   requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" +
     datasets.ViirsWdpaDaily + "%20where%20alert__date%3E%3D%27" +
     getFormattedDate(lastMonday) + "%27%20and%20alert__date%3C%27" + getFormattedDate(currDate) + "%27" +
-    "%20and%20wdpa_protected_area__iso%3D%20%27" + countryISO + "%27%20and%20" + layer + operation;
+    "%20and%20wdpa_protected_area__iso%20in%20%28" + countriesISOCodes + "%29%20and%20" + layer + operation;
   const responseWDPADaily = await verifyRequest(requestOptions);
   //Iterate through each of the rows of the data in the response
   responseWDPADaily.data.forEach(row => {
@@ -159,7 +150,7 @@ const apiCanaryBlueprint = async function () {
     requestOptions.hostname = JSON.parse(data["SecretString"])["smoke-tests-host-staging"];
   }).promise();
 
-  // Find and use datasetid
+ // Find and use datasetid
   let datasets = {
     ViirsWdpaWhitelist: "",
     ViirsWdpaWeekly: "",
@@ -181,25 +172,25 @@ const apiCanaryBlueprint = async function () {
       if (err) log.info(err, err.stack);
       log.info(data);
       countriesISOCodes = JSON.parse(data["SecretString"])["whitelist_test_countries_ISO_codes"];
-      contextualLayersString = JSON.parse(data["SecretString"])["whitelist_test_contextual_layers"];
+      contextualLayersString = JSON.parse(data["SecretString"])["whitelist_wdpa_contextual_layers"];
       log.info("contextualLayersString: " + contextualLayersString);
       contextualLayers = new Map(JSON.parse(contextualLayersString));
   }).promise();
 
-  requestOptions.path = "/v1/query/?sql=select%20*%20from%20" + datasets.ViirsWdpaWhitelist + "%20where%20iso%20in%20%28" + countriesISOCodes + "%29";
+  requestOptions.path = "/v1/query/?sql=select%20*%20from%20" + datasets.ViirsWdpaWhitelist + "%20where%20wdpa_protected_area__iso%20in%20%28" + countriesISOCodes + "%29";
   const response = await verifyRequest(requestOptions);
   let totalViirsAlertsMap = new Map();
   let totalViirsAlerts = 0;
   //Iterate through each of the rows of the data in the response
   for (const row of response.data) {
-    if (row.iso===null) {
-        throw new Error("no entry returned from Viirs WDPA Whitelist table");
+    if (row.wdpa_protected_area__iso===null) {
+        throw new Error("no entry returned from VIIRS Whitelist table");
     }
     else {
         for (const [key, value] of contextualLayers){
-            if (key!="wdpa_protected_area__iucn_cat" and !totalViirsAlertsMap.get(row.iso + "_" + key) and row[key]===true){
-                totalViirsAlerts = await testIntegrityForLayer(datasets, row.iso, key, value);
-                totalViirsAlertsMap.set(row.iso + "_" + key, totalViirsAlerts);
+            if (totalViirsAlertsMap.get(key)===undefined && row[key]===true){
+                totalViirsAlerts = await testIntegrityForLayer(datasets, countriesISOCodes, key, value);
+                totalViirsAlertsMap.set(key, totalViirsAlerts);
                 log.info("key=" + key + " value=" + value + " row[key]=" + row[key] + " totalViirsAlerts=" + totalViirsAlerts);
             }
         }
@@ -212,14 +203,14 @@ const apiCanaryBlueprint = async function () {
   for (const [key, value] of totalViirsAlertsMap){
       log.info("key=" + key + " value=" + value );
       if (value === 0){
-          throwExceptionKey = throwExceptionKey + " " + key;
+          throwExceptionKeys = throwExceptionKeys + " " + key;
           throwException = true;
       }
   }
   log.info("----------------------------------------------------------- ")
- /* if(throwException){
-      throw new Error("0 number of alerts returned for the past week for the following countries/contextual layers" + throwExceptionKey);
-  }*/
+  if(throwException){
+      throw new Error("0 number of alerts returned for the past week across the following countries " + countriesISOCodes + " for the following contextuallayers " + throwExceptionKeys);
+  }
 
 };
 

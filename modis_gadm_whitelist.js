@@ -61,16 +61,9 @@ const apiCanaryBlueprint = async function () {
      var date = new Date(incomingDate);
      date.setHours(0, 0, 0, 0);
      date.setDate(date.getDate() - (date.getDay() + 6) % 7);
-     return date.getDate();
+     return date;
  };
 
- // Returns Date that corresponds to Sunday of the week corresponding to the incoming date
- const getSunday = function(incomingDate) {
-     var date = new Date(incomingDate);
-     date.setHours(0, 0, 0, 0);
-     date.setDate(date.getDate() + 6 - (date.getDay() + 6) % 7);
-     return date.getDate();
- };
 
  const getFormattedDate = function(incomingDate) {
      var date = new Date(incomingDate);
@@ -81,7 +74,7 @@ const apiCanaryBlueprint = async function () {
      return dateString;
  };
 
- const testIntegrityForLayer = async function(datasets, countryISO, layer, operation){
+ const testIntegrityForLayer = async function(datasets, countryISOCodes, layer, operation){
     // TEST #1
     // Find sum of all Modis alerts for the most recent completed week in the adm0 table
     let sumModisAlerts = 0;
@@ -91,7 +84,7 @@ const apiCanaryBlueprint = async function () {
     log.info("current week:" + currWeek);
     requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" + 
         datasets.ModisGadmAdm0Weekly + "%20where%20alert__year%20%3D%20" + currYear + "%20and%20alert__week%3D" + 
-        currWeek + "%20and%20iso%3D%20%27" + countryISO + "%27%20and%20" + layer + operation;
+        currWeek + "%20and%20iso%20in%20%28" + countriesISOCodes + "%29%20and%20" + layer + operation;
     const responseAdm0 = await verifyRequest(requestOptions);
     //Iterate through each of the rows of the data in the response
     responseAdm0.data.forEach(row => {
@@ -112,7 +105,7 @@ const apiCanaryBlueprint = async function () {
     // Find sum of all Modis alerts for the most recent  week in the adm1 table
     requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" + 
         datasets.ModisGadmAdm1Weekly + "%20where%20alert__year%20%3D%20" + currYear + "%20and%20and%20alert__week%3D" + 
-        currWeek + "%20and%20iso%3D%20%27" + countryISO + "%27%20and%20" + layer + operation;
+        currWeek + "%20and%20iso%20in%20%28" + countriesISOCodes + "%29%20and%20" + layer + operation;
     const responseAdm1 = await verifyRequest(requestOptions);
     //Iterate through each of the rows of the data in the response
     responseAdm1.data.forEach(row => {
@@ -131,7 +124,7 @@ const apiCanaryBlueprint = async function () {
     // Find sum of all Modis alerts for the most recent week in the adm2 table
     requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" + 
         datasets.ModisGadmAdm2Weekly + "%20where%20alert__year%20%3D%20" + currYear + "%20and%20and%20alert__week%3D" + 
-        currWeek + "%20and%20iso%3D%20%27" + countryISO + "%27%20and%20" + layer + operation;
+        currWeek + "%20and%20iso%20in%20%28" + countriesISOCodes + "%29%20and%20" + layer + operation;
     const responseAdm2 = await verifyRequest(requestOptions);
     //Iterate through each of the rows of the data in the response
     responseAdm2.data.forEach(row => {
@@ -148,15 +141,14 @@ const apiCanaryBlueprint = async function () {
 
     // TEST #4
     // Find sum of all Modis alerts for the most recent week in the adm2 daily table
-    const lastMonday = new Date();
     log.info("Today’s date = " + getFormattedDate(currDate));
-    lastMonday.setDate(getMonday(currDate));
+    const lastMonday = new Date(getMonday(currDate));
     log.info("Last Monday = " + getFormattedDate(lastMonday));
     log.info("Today = " + getFormattedDate(currDate));
     requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" + 
         datasets.ModisGadmAdm2Daily + "%20where%20and%20alert__date%20%3E%3D%27" + 
         getFormattedDate(lastMonday) + "%27%20and%20alert__date%3C%27" + getFormattedDate(currDate) + "%27" + 
-        "%20and%20iso%3D%20%27" + countryISO + "%27%20and%20" + layer + operation;
+        "%20and%20iso%20in%20%28" + countriesISOCodes + "%29%20and%20" + layer + operation;
     const responseAdm2Daily = await verifyRequest(requestOptions);
     //Iterate through each of the rows of the data in the response
     responseAdm2Daily.data.forEach(row => {
@@ -243,10 +235,10 @@ const apiCanaryBlueprint = async function () {
     }
     else {
         for (const [key, value] of contextualLayers){
-            if (row[key]===true){
-                totalModisAlerts = await testIntegrityForLayer(datasets, row.iso, key, value); 
-                totalModisAlertsMap.set(row.iso + "_" + key, totalModisAlerts); 
-                log.info("iso=" + row.iso + "key=" + key + " value=" + value + " row[key]=" + row[key] + " totalModisAlerts=" + totalModisAlerts);
+            if (totalModisAlertsMap.get(key)===undefined && row[key]===true){
+                totalModisAlerts = await testIntegrityForLayer(datasets, countriesISOCodes, key, value);
+                totalModisAlertsMap.set(key, totalModisAlerts);
+                log.info("key=" + key + " value=" + value + " row[key]=" + row[key] + " totalModisAlerts=" + totalModisAlerts);
             }
         }
     }
