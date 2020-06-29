@@ -122,7 +122,7 @@ const apiCanaryBlueprint = async function () {
       throw new Error("sum of all VIIRS alerts from geostore daily table not returned");
     }
     else if (row.sum_alert_count!=sumVIIRSAlerts){
-        throw new Error("sum of all VIIRS alerts from geostore daily for the past week is not equal to the sum of all VIIRS alerts from WDPA weekly for the past week: " + sumVIIRSAlerts);
+        throw new Error("sum of all VIIRS alerts from geostore daily for the past week is not equal to the sum of all VIIRS alerts from geostore weekly for the past week: " + sumVIIRSAlerts);
     }
     else {
         log.info("Successfully returned sum of all VIIRS alerts for the past week from geostore daily table: " + row.sum_alert_count);
@@ -190,16 +190,11 @@ const apiCanaryBlueprint = async function () {
   let totalViirsAlerts = 0;
   //Iterate through each of the rows of the data in the response
   for (const row of response.data) {
-    if (row.wdpa_protected_area__iso===null) {
-        throw new Error("no entry returned from Viirs geostore Whitelist table");
-    }
-    else {
-        for (const [key, value] of contextualLayers){
-            if (totalViirsAlertsMap.get(key)===undefined && row[key]===true){
-                totalViirsAlerts = await testIntegrityForLayer(datasets, key, value);
-                totalViirsAlertsMap.set(key, totalViirsAlerts);
-                log.info("key=" + key + " value=" + value + " row[key]=" + row[key] + " totalViirsAlerts=" + totalViirsAlerts);
-            }
+    for (const [key, value] of contextualLayers){
+        if (totalViirsAlertsMap.get(key)===undefined && row[key]===true){
+            totalViirsAlerts = await testIntegrityForLayer(datasets, key, value);
+            totalViirsAlertsMap.set(key, totalViirsAlerts);
+            log.info("key=" + key + " value=" + value + " row[key]=" + row[key] + " totalViirsAlerts=" + totalViirsAlerts);
         }
     }
   };
@@ -216,7 +211,7 @@ const apiCanaryBlueprint = async function () {
   }
   log.info("----------------------------------------------------------- ")
   if(throwException){
-      throw new Error("0 number of alerts returned for the past week across the following countries " + countriesISOCodes + " for the following contextuallayers " + throwExceptionKeys);
+      throw new Error("0 number of alerts returned for the past week across all geostore ids for the following contextuallayers " + throwExceptionKeys);
   }
 
 };
