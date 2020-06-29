@@ -78,7 +78,7 @@ const apiCanaryBlueprint = async function () {
   await secretsManager.getSecretValue({ SecretId: "gfw-api/datasets" }, function(err, data) {
       if (err) log.info(err, err.stack);
       log.info(data);
-      datasets.MODIS_Fire_Alerts_adm0_weekly = JSON.parse(data["SecretString"])["MODIS_Fire_Alerts_adm0_weekly"];
+      datasets.MODIS_Fire_Alerts_adm0_weekly = JSON.parse(data["SecretString"])["MODIS_GADM_adm0_weekly"];
   }).promise();
   
   
