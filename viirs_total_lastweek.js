@@ -152,7 +152,7 @@ const apiCanaryBlueprint = async function () {
   const lastMonday = new Date(getMonday(currDate));
   log.info("Last Monday = " + getFormattedDate(lastMonday));
   log.info("Today = " + getFormattedDate(currDate));
-  requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" + datasets.VIIRS_Fire_Alerts_all + "%20where%20alert__date%20%3E%3D%20%27" + getFormattedDate(lastMonday)  + "%27%20and%20alert__date%20%3C%27" + getFormattedDate(currDate) + "%27";
+  requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" + datasets.VIIRS_Fire_Alerts_all + "%20where%20alert__date%20%3E%3D%20%27" + getFormattedDate(lastMonday)  + "%27%20and%20alert__date%20%3C%3D%27" + getFormattedDate(currDate) + "%27";
   const responseAll = await verifyRequest(requestOptions);
   //Iterate through each of the rows of the data in the response
   responseAll.data.forEach(row => {
@@ -190,7 +190,7 @@ const apiCanaryBlueprint = async function () {
 
   // TEST #3
   // Count all alerts for the past week from the vector tile cache
-  requestOptionsDataApi.path = "/dataset/" + datasets.VIIRS_Data_Api_Name + "/" + datasets.VIIRS_Data_Api_Version + "/query?sql=select%20count%28*%29%20as%20sum_alert_count%20from%20mytable%20where%20alert__date%20%3E%3D%20%27" + getFormattedDate(lastMonday)  + "%27%20and%20alert__date%20%3C%27" + getFormattedDate(currDate) + "%27";
+  requestOptionsDataApi.path = "/dataset/" + datasets.VIIRS_Data_Api_Name + "/" + datasets.VIIRS_Data_Api_Version + "/query?sql=select%20count%28*%29%20as%20sum_alert_count%20from%20mytable%20where%20alert__date%20%3E%3D%20%27" + getFormattedDate(lastMonday)  + "%27%20and%20alert__date%20%3C%3D%27" + getFormattedDate(currDate) + "%27";
  // log.info("Making request with options: " + JSON.stringify(requestOptionsDataApi));
  const responseDataApi = await verifyRequest(requestOptionsDataApi);
   //Iterate through each of the rows of the data in the response

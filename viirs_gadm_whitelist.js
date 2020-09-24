@@ -145,8 +145,8 @@ const apiCanaryBlueprint = async function () {
     log.info("Last Monday = " + getFormattedDate(lastMonday));
     log.info("Today = " + getFormattedDate(currDate));
     requestOptions.path = "/v1/query/?sql=select%20sum%28alert__count%29%20as%20sum_alert_count%20from%20" +
-        datasets.ViirsGadmAdm2Daily + "%20where%20and%20alert__date%20%3E%3D%27" +
-        getFormattedDate(lastMonday) + "%27%20and%20alert__date%3C%27" + getFormattedDate(currDate) + "%27" +
+        datasets.ViirsGadmAdm2Daily + "%20where%20alert__date%20%3E%3D%27" +
+        getFormattedDate(lastMonday) + "%27%20and%20alert__date%3C%3D%27" + getFormattedDate(currDate) + "%27" +
         "%20and%20iso%20in%20%28" + countriesISOCodes + "%29%20and%20" + layer + operation;
     const responseAdm2Daily = await verifyRequest(requestOptions);
     //Iterate through each of the rows of the data in the response
